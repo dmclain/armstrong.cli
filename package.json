@@ -10,8 +10,7 @@
         ]
     },
     "install_requires": [
-        "argparse==1.2.1",
-        "armstrong.templates.demo"
+        "argparse==1.2.1"
     ]
 
 }
