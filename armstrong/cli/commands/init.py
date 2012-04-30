@@ -5,7 +5,6 @@ import re
 import shutil
 import codecs
 import json
-import argparse
 from random import choice
 
 CWD = os.getcwd()
@@ -34,24 +33,14 @@ class InitCommand(object):
         # TODO: interactive mode to ask questions for each variable
         from django.conf import settings
 
-        # TODO: appropriate error output if non-existant template chosen
-        template_dir = os.path.realpath(os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            "templates",
-            template,
-        ))
+        from pkg_resources import iter_entry_points
+        try:
+            entry_point = iter_entry_points(ENTRY_POINT, template).next()
+        except StopIteration:
+            raise MissingTemplate("No template named: %s" % template)
 
-        if not os.path.exists(template_dir):
-            from pkg_resources import iter_entry_points
-            for ep in iter_entry_points(group=ENTRY_POINT):
-                if ep.name == template:
-                    root = ep.load()
-                    template_dir = root.__path__
-                    break
-            else:
-                raise MissingTemplate("No template named: %s" % template)
-
+        module = entry_point.load()
+        template_dir = module.__path__[0]
 
         settings.configure(DEBUG=False, TEMPLATE_DEBUG=False,
                 TEMPLATE_DIRS=[template_dir, ])
@@ -60,7 +49,7 @@ class InitCommand(object):
         # TODO: allow this to be passed in via command line
         project_name = os.path.basename(path)
 
-        # The secret key generate is borrowed directly from Django's startproject
+        # Secret key generation: borrowed directly from Django's startproject
         CHOICES = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
         secret_key = ''.join([choice(CHOICES) for i in range(50)])
         context = Context({
@@ -79,7 +68,6 @@ class InitCommand(object):
                 for name in filenames:
                     if not name.endswith(".pyc"):
                         yield os.path.join(dirpath, name)
-
 
         existing_files = []
         files = []
